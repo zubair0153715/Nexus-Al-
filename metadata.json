@@ -1,0 +1,5 @@
+{
+  "name": "Nexus AI: Social Command",
+  "description": "Enterprise-grade social media command center powered by specialized AI agents for business growth, ranking optimization, and real-time multi-platform management.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
+}

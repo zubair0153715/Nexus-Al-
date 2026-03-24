@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "Application user profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "socialAccount": {
+      "title": "Social Account",
+      "description": "Connected social media account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "platform": { "type": "string", "enum": ["twitter", "instagram", "linkedin", "facebook"] },
+        "username": { "type": "string" },
+        "status": { "type": "string", "enum": ["connected", "disconnected", "error"] },
+        "ownerId": { "type": "string" },
+        "connectedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "platform", "username", "ownerId"]
+    },
+    "aiAgent": {
+      "title": "AI Agent",
+      "description": "Specialized AI agent working for the user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "specialty": { "type": "string", "enum": ["Content Strategist", "Engagement Specialist", "Analytics Expert", "Brand Guardian", "Ranking Optimizer"] },
+        "status": { "type": "string", "enum": ["active", "idle", "working"] },
+        "lastAction": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["id", "name", "specialty", "ownerId"]
+    },
+    "post": {
+      "title": "Post",
+      "description": "Social media post created or managed by agents",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "content": { "type": "string" },
+        "platform": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "scheduled", "published", "failed"] },
+        "scheduledAt": { "type": "string", "format": "date-time" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "authorId": { "type": "string" },
+        "agentId": { "type": "string" },
+        "mediaUrls": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "content", "status", "authorId"]
+    },
+    "activity": {
+      "title": "Activity",
+      "description": "Log of agent actions and system events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "success", "warning", "error"] },
+        "agentId": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "message", "ownerId"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "user",
+      "description": "User profiles"
+    },
+    "/users/{uid}/socialAccounts/{accountId}": {
+      "schema": "socialAccount",
+      "description": "Social media accounts connected by the user"
+    },
+    "/users/{uid}/aiAgents/{agentId}": {
+      "schema": "aiAgent",
+      "description": "AI agents assigned to the user"
+    },
+    "/users/{uid}/posts/{postId}": {
+      "schema": "post",
+      "description": "Posts managed for the user"
+    },
+    "/users/{uid}/activity/{activityId}": {
+      "schema": "activity",
+      "description": "Activity logs for the user"
+    }
+  }
+}

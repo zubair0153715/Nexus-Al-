@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: /users/{uid}
+    // Fields: uid, email, displayName, photoURL, role, createdAt
+    //
+    // Collection: /users/{uid}/socialAccounts/{accountId}
+    // Fields: id, platform, username, status, ownerId, connectedAt
+    //
+    // Collection: /users/{uid}/aiAgents/{agentId}
+    // Fields: id, name, specialty, status, lastAction, ownerId
+    //
+    // Collection: /users/{uid}/posts/{postId}
+    // Fields: id, content, platform, status, scheduledAt, publishedAt, authorId, agentId, mediaUrls
+    //
+    // Collection: /users/{uid}/activity/{activityId}
+    // Fields: id, timestamp, message, type, agentId, ownerId
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "za0153715@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is string && ts.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'email']) &&
+             hasOnlyAllowedFields(['uid', 'email', 'displayName', 'photoURL', 'role', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             (data.role == 'user' || isAdmin());
+    }
+
+    function isValidSocialAccount(data) {
+      return hasRequiredFields(['id', 'platform', 'username', 'ownerId']) &&
+             data.ownerId == request.auth.uid;
+    }
+
+    function isValidAgent(data) {
+      return hasRequiredFields(['id', 'name', 'specialty', 'ownerId']) &&
+             data.ownerId == request.auth.uid &&
+             data.specialty in ["Content Strategist", "Engagement Specialist", "Analytics Expert", "Brand Guardian", "Ranking Optimizer"];
+    }
+
+    function isValidPost(data) {
+      return hasRequiredFields(['id', 'content', 'status', 'authorId']) &&
+             data.authorId == request.auth.uid;
+    }
+
+    function isValidActivity(data) {
+      return hasRequiredFields(['id', 'timestamp', 'message', 'ownerId']) &&
+             data.ownerId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (request.resource.data.role == 'user' || isAdmin());
+      allow update: if isOwner(uid) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin());
+
+      match /socialAccounts/{accountId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidSocialAccount(request.resource.data);
+        allow update: if isOwner(uid) && isValidSocialAccount(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /aiAgents/{agentId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidAgent(request.resource.data);
+        allow update: if isOwner(uid) && isValidAgent(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /posts/{postId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidPost(request.resource.data);
+        allow update: if isOwner(uid) && isValidPost(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /activity/{activityId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidActivity(request.resource.data);
+        allow update: if isOwner(uid) && isValidActivity(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
